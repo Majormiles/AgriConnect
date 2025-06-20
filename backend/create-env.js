@@ -13,7 +13,14 @@ EMAIL_SERVICE=gmail
 EMAIL_USERNAME=setugahisrael@gmail.com
 EMAIL_PASSWORD=qvrltyoheafluspc
 EMAIL_FROM=agriconnect@gmail.com
-FRONTEND_URL=http://localhost:3000`;
+FRONTEND_URL=http://localhost:3000
+
+# Ghana Commodity Price API Integration
+API_NINJAS_KEY=KpBDiLt4QVL8hIVDcQG+zw==drYbwWfjYjK5S1nc
+COMMODITY_CACHE_TTL=900
+EXCHANGE_RATE_CACHE_TTL=3600
+COMMODITY_API_TIMEOUT=10000
+COMMODITY_MONTHLY_LIMIT=950`;
 
 // Write to .env file
 fs.writeFileSync(path.join(__dirname, '.env'), envContent);

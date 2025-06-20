@@ -8,6 +8,12 @@ router.get('/prices', marketController.getMarketPrices);
 router.get('/trends', marketController.getMarketTrends);
 router.get('/overview', marketController.getMarketOverview);
 
+// Ghana commodity data routes (external API integration)
+router.get('/commodities', marketController.getCommodityPrices);
+router.get('/commodities/:commodityName', marketController.getSingleCommodityPrice);
+router.get('/enhanced-overview', marketController.getEnhancedMarketOverview);
+router.get('/commodity-service/status', marketController.getCommodityServiceStatus);
+
 // Protected routes - require authentication
 router.use(authMiddleware.protect);
 
@@ -25,5 +31,11 @@ router.route('/alerts')
 router.route('/alerts/:id')
   .patch(marketController.updateMarketAlert)
   .delete(marketController.deleteMarketAlert);
+
+// Admin-only commodity cache management
+router.post('/commodity-service/clear-cache', 
+  authMiddleware.restrictTo('admin'), 
+  marketController.clearCommodityCache
+);
 
 module.exports = router; 

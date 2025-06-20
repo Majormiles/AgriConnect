@@ -1,6 +1,7 @@
 const { MarketPrice, MarketAlert } = require('../models/market.model');
 const { catchAsync } = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+const commodityService = require('../services/commodity.service');
 
 // Get market prices with filters and aggregation
 exports.getMarketPrices = catchAsync(async (req, res, next) => {
@@ -295,4 +296,196 @@ exports.deleteMarketAlert = catchAsync(async (req, res, next) => {
     status: 'success',
     data: null
   });
+});
+
+// Get Ghana commodity prices from external API (Free Tier)
+exports.getCommodityPrices = catchAsync(async (req, res, next) => {
+  const { region, forceRefresh = false, tier = 'free' } = req.query;
+  
+  try {
+    let commodityData;
+    if (tier === 'premium') {
+      commodityData = await commodityService.getGhanaPremiumCommodities(region);
+    } else {
+      commodityData = await commodityService.getGhanaPrimaryCommodities(region);
+    }
+    
+    res.status(200).json({
+      status: 'success',
+      data: {
+        commodities: commodityData.results,
+        errors: commodityData.errors,
+        region: region || 'All Regions',
+        tier: tier,
+        lastUpdated: new Date(),
+        dataSource: 'api_ninjas_integration',
+        note: tier === 'premium' ? 'Premium commodities require paid API subscription' : 'Free tier commodities'
+      }
+    });
+  } catch (error) {
+    return next(new AppError(`Failed to fetch commodity prices: ${error.message}`, 500));
+  }
+});
+
+// Get specific commodity price
+exports.getSingleCommodityPrice = catchAsync(async (req, res, next) => {
+  const { commodityName } = req.params;
+  const { region, forceRefresh = false } = req.query;
+  
+  if (!commodityName) {
+    return next(new AppError('Commodity name is required', 400));
+  }
+  
+  try {
+    const commodityData = await commodityService.getCommodityPrice(commodityName, {
+      region,
+      forceRefresh: forceRefresh === 'true'
+    });
+    
+    res.status(200).json({
+      status: 'success',
+      data: {
+        commodity: commodityData,
+        lastUpdated: new Date()
+      }
+    });
+  } catch (error) {
+    return next(new AppError(`Failed to fetch ${commodityName} price: ${error.message}`, 500));
+  }
+});
+
+// Enhanced market overview with external commodity data
+exports.getEnhancedMarketOverview = catchAsync(async (req, res, next) => {
+  const { region } = req.query;
+  
+  try {
+    // Get local market data (existing functionality)
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const matchStage = region ? { 'location.region': region } : {};
+
+    // Get local data in parallel with external commodity data
+    const [localData, externalCommodities] = await Promise.all([
+      // Local market data aggregation
+      Promise.all([
+        MarketPrice.aggregate([
+          { $match: { ...matchStage, createdAt: { $gte: yesterday } } },
+          {
+            $group: {
+              _id: '$product.category',
+              avgPrice: { $avg: '$price.current' },
+              products: { $addToSet: '$product.name' },
+              totalSupply: { $sum: '$supply.available' }
+            }
+          },
+          { $sort: { avgPrice: -1 } }
+        ]),
+        MarketPrice.aggregate([
+          { $match: { ...matchStage, createdAt: { $gte: yesterday } } },
+          {
+            $group: {
+              _id: '$product.name',
+              currentPrice: { $avg: '$price.current' },
+              priceChange: { $avg: '$trends.dailyChange.percentage' },
+              supply: { $sum: '$supply.available' }
+            }
+          },
+          { $sort: { priceChange: -1 } },
+          { $limit: 10 }
+        ]),
+        MarketPrice.aggregate([
+          { $match: { createdAt: { $gte: yesterday } } },
+          {
+            $group: {
+              _id: '$location.region',
+              avgPrice: { $avg: '$price.current' },
+              productCount: { $addToSet: '$product.name' },
+              totalSupply: { $sum: '$supply.available' }
+            }
+          },
+          {
+            $project: {
+              region: '$_id',
+              avgPrice: 1,
+              productVariety: { $size: '$productCount' },
+              totalSupply: 1
+            }
+          },
+          { $sort: { avgPrice: 1 } }
+        ])
+      ]),
+      // External commodity data
+      commodityService.getGhanaPrimaryCommodities(region)
+    ]);
+
+    const [categoryPrices, trendingProducts, regionalComparison] = localData;
+
+    // Process external commodity data for integration
+    const externalCommoditiesProcessed = Object.entries(externalCommodities.results).map(([name, data]) => ({
+      _id: name,
+      currentPrice: data.marketInsights.finalPriceGHS,
+      priceChange: null, // No historical data from external API
+      supply: null,
+      dataSource: 'external_api',
+      unit: data.unit,
+      lastUpdated: data.lastUpdated,
+      priceUSD: data.priceUSD,
+      exchangeRate: data.exchangeRate,
+      isStale: data.isStale || false
+    }));
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        categoryPrices,
+        trendingProducts: [...trendingProducts, ...externalCommoditiesProcessed],
+        regionalComparison,
+        externalCommodities: externalCommodities.results,
+        commodityErrors: externalCommodities.errors,
+        region: region || 'All Regions',
+        lastUpdated: now,
+        dataIntegration: {
+          localSources: trendingProducts.length,
+          externalSources: Object.keys(externalCommodities.results).length,
+          errors: Object.keys(externalCommodities.errors).length
+        }
+      }
+    });
+  } catch (error) {
+    return next(new AppError(`Failed to fetch enhanced market overview: ${error.message}`, 500));
+  }
+});
+
+// Commodity service health check
+exports.getCommodityServiceStatus = catchAsync(async (req, res, next) => {
+  try {
+    const healthStatus = await commodityService.healthCheck();
+    const cacheStats = commodityService.getCacheStats();
+    
+    res.status(200).json({
+      status: 'success',
+      data: {
+        serviceHealth: healthStatus,
+        cacheStatistics: cacheStats,
+        timestamp: new Date()
+      }
+    });
+  } catch (error) {
+    return next(new AppError(`Commodity service health check failed: ${error.message}`, 500));
+  }
+});
+
+// Clear commodity cache (admin only)
+exports.clearCommodityCache = catchAsync(async (req, res, next) => {
+  try {
+    commodityService.clearCache();
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Commodity cache cleared successfully',
+      timestamp: new Date()
+    });
+  } catch (error) {
+    return next(new AppError(`Failed to clear cache: ${error.message}`, 500));
+  }
 }); 

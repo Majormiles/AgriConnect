@@ -6,10 +6,14 @@ const MarketDashboard = () => {
     categoryPrices: [],
     trendingProducts: [],
     regionalComparison: [],
+    externalCommodities: {},
+    commodityErrors: {},
+    dataIntegration: { localSources: 0, externalSources: 0, errors: 0 },
     loading: true
   });
   const [selectedRegion, setSelectedRegion] = useState('');
   const [priceAlerts, setPriceAlerts] = useState([]);
+  const [commodityServiceStatus, setCommodityServiceStatus] = useState(null);
   
   const API_URL = 'http://localhost:5001/api';
 
@@ -21,6 +25,7 @@ const MarketDashboard = () => {
   useEffect(() => {
     fetchMarketOverview();
     fetchUserAlerts();
+    fetchCommodityServiceStatus();
   }, [selectedRegion]);
 
   const fetchMarketOverview = async () => {
@@ -30,7 +35,8 @@ const MarketDashboard = () => {
       const params = new URLSearchParams();
       if (selectedRegion) params.append('region', selectedRegion);
       
-      const response = await fetch(`${API_URL}/market/overview?${params}`, {
+      // Use enhanced overview endpoint that includes commodity data
+      const response = await fetch(`${API_URL}/market/enhanced-overview?${params}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         }
@@ -42,6 +48,25 @@ const MarketDashboard = () => {
           ...data.data,
           loading: false
         });
+      } else {
+        // Fallback to regular overview if enhanced fails
+        console.warn('Enhanced overview failed, falling back to regular overview');
+        const fallbackResponse = await fetch(`${API_URL}/market/overview?${params}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+          }
+        });
+        
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          setMarketData({
+            ...fallbackData.data,
+            externalCommodities: {},
+            commodityErrors: {},
+            dataIntegration: { localSources: fallbackData.data.trendingProducts?.length || 0, externalSources: 0, errors: 0 },
+            loading: false
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching market overview:', error);
@@ -66,6 +91,19 @@ const MarketDashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching alerts:', error);
+    }
+  };
+
+  const fetchCommodityServiceStatus = async () => {
+    try {
+      const response = await fetch(`${API_URL}/market/commodity-service/status`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCommodityServiceStatus(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching commodity service status:', error);
     }
   };
 
@@ -161,6 +199,67 @@ const MarketDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Commodity Service Status */}
+        {commodityServiceStatus && (
+          <section className="mb-8">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <div className={`w-3 h-3 rounded-full mr-3 ${commodityServiceStatus.serviceHealth.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <h3 className="text-lg font-bold text-blue-800">Ghana Commodity Data Service</h3>
+                </div>
+                <span className="text-sm text-blue-600">
+                  API Usage: {commodityServiceStatus.serviceHealth.apiRequestsUsed || 0}/{commodityServiceStatus.cacheStatistics.monthlyLimit || 950}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-blue-200">
+                  <div className="font-medium text-blue-900 mb-1">Exchange Rate</div>
+                  <div className="text-blue-700">
+                    1 USD = {commodityServiceStatus.serviceHealth.exchangeRate?.toFixed(2) || 'N/A'} GHS
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-blue-200">
+                  <div className="font-medium text-blue-900 mb-1">Cache Performance</div>
+                  <div className="text-blue-700">
+                    {commodityServiceStatus.cacheStatistics.cache.keys || 0} active entries
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-blue-200">
+                  <div className="font-medium text-blue-900 mb-1">Data Integration</div>
+                  <div className="text-blue-700">
+                    {marketData.dataIntegration.externalSources} external sources
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* External Commodity Errors */}
+        {Object.keys(marketData.commodityErrors).length > 0 && (
+          <section className="mb-8">
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-6 shadow-sm">
+              <div className="flex items-center mb-4">
+                <AlertCircle className="text-yellow-600 mr-3" size={24} />
+                <h3 className="text-xl font-bold text-yellow-800">Commodity Data Issues</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(marketData.commodityErrors).slice(0, 3).map(([commodity, error], index) => (
+                  <div key={index} className="bg-white rounded-lg p-4 shadow-sm border border-yellow-200">
+                    <div className="text-sm font-medium text-yellow-900 mb-1">
+                      {commodity}
+                    </div>
+                    <div className="text-xs text-yellow-700">
+                      {error}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Price Alerts */}
         {priceAlerts.length > 0 && (
           <section className="mb-8">
@@ -272,22 +371,57 @@ const MarketDashboard = () => {
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="divide-y divide-gray-200">
-              {marketData.trendingProducts.slice(0, 5).map((product, index) => (
+              {marketData.trendingProducts.slice(0, 8).map((product, index) => (
                 <div key={index} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h4 className="text-lg font-semibold text-gray-900 mb-1">{product._id}</h4>
-                      <p className="text-sm text-gray-600">
-                        Current: {formatPrice(product.currentPrice)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="mb-2">
-                        {formatTrend(product.priceChange)}
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-lg font-semibold text-gray-900">{product._id}</h4>
+                        {product.dataSource === 'external_api' && (
+                          <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                            Global Price
+                          </span>
+                        )}
+                        {product.isStale && (
+                          <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                            Cached Data
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-gray-600">
-                        Supply: {product.supply?.toLocaleString() || 0} units
+                        Current: {formatPrice(product.currentPrice)}
+                        {product.dataSource === 'external_api' && product.priceUSD && (
+                          <span className="ml-2 text-gray-500">
+                            (${product.priceUSD.toFixed(2)} USD)
+                          </span>
+                        )}
                       </p>
+                      {product.unit && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Unit: {product.unit}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      {product.priceChange !== null && (
+                        <div className="mb-2">
+                          {formatTrend(product.priceChange)}
+                        </div>
+                      )}
+                      {product.supply !== null ? (
+                        <p className="text-sm text-gray-600">
+                          Supply: {product.supply?.toLocaleString() || 0} units
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-600">
+                          External Source
+                        </p>
+                      )}
+                      {product.lastUpdated && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Updated: {new Date(product.lastUpdated).toLocaleTimeString()}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -295,6 +429,67 @@ const MarketDashboard = () => {
             </div>
           </div>
         </section>
+
+        {/* Ghana External Commodity Prices */}
+        {Object.keys(marketData.externalCommodities).length > 0 && (
+          <section className="mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Ghana Commodity Prices (Global Market)</h2>
+              <span className="text-sm text-gray-500">Live international prices with local adjustments</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(marketData.externalCommodities).map(([commodity, data], index) => (
+                <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-semibold text-gray-900 capitalize">{commodity}</h4>
+                    <div className="flex items-center space-x-2">
+                      {data.isStale && (
+                        <span className="w-2 h-2 bg-yellow-500 rounded-full" title="Cached data"></span>
+                      )}
+                      <span className="w-2 h-2 bg-blue-500 rounded-full" title="External source"></span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-2xl font-bold text-green-600">
+                        {formatPrice(data.marketInsights.finalPriceGHS)}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Local market price ({data.unit})
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-600">Global Price:</span>
+                        <div className="font-medium text-gray-900">
+                          ${data.priceUSD.toFixed(2)} USD
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Per Kg:</span>
+                        <div className="font-medium text-gray-900">
+                          {formatPrice(data.marketInsights.pricePerKg)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="border-t pt-3">
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Local Premium: {data.marketInsights.localPremium}</span>
+                        <span>Seasonal: {data.marketInsights.seasonalAdjustment}</span>
+                      </div>
+                      <div className="mt-1 text-xs text-gray-400">
+                        Exchange: 1 USD = {data.exchangeRate.toFixed(2)} GHS
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Regional Comparison */}
         <section className="mb-8">
