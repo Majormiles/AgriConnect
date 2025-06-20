@@ -1,0 +1,12 @@
+{
+  "name": "agriconnect-root",
+  "version": "1.0.0",
+  "description": "Root package for AgriConnect application",
+  "scripts": {
+    "start": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
+    "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 
