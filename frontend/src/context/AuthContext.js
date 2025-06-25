@@ -291,11 +291,30 @@ export const AuthProvider = ({ children }) => {
   };
 
   const registerFarmer = async (formData) => {
+    setLoading(true);
+    setError(null);
+
     try {
-      const response = await axios.post('/api/auth/register-farmer', formData);
-      return response.data;
+      const response = await fetch(`${API_URL}/auth/register-farmer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Farmer registration failed');
+      }
+
+      return { success: true, message: data.message };
     } catch (error) {
-      throw error;
+      setError(error.message);
+      return { success: false, message: error.message };
+    } finally {
+      setLoading(false);
     }
   };
 

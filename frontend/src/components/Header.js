@@ -66,7 +66,7 @@ const Header = () => {
       {/* Top bar */}
       <div className="bg-gray-100 text-sm py-2">
         <div className="container mx-auto px-4 flex justify-between items-center">
-          <span className="text-gray-600 text-xs sm:text-sm">🚚 Somewhere in Ghana</span>
+          <span className="text-gray-600 text-xs sm:text-sm">Somewhere in Ghana</span>
           <div className="flex items-center space-x-2 sm:space-x-4">
             <span>Eng</span>
             <span>INFO</span>
@@ -81,7 +81,7 @@ const Header = () => {
           <div className="flex items-center space-x-2">
             <Link to="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white font-bold">🌱</span>
+                <span className="text-white font-bold"></span>
               </div>
               <span className="text-xl font-bold text-gray-800">AgriConnect</span>
             </Link>
@@ -100,7 +100,7 @@ const Header = () => {
           <nav className="hidden md:flex items-center space-x-8">
             <Link to="/" className="text-gray-700 hover:text-primary font-medium">Home</Link>
             <Link to="/shop" className="text-gray-700 hover:text-primary font-medium">Shop</Link>
-            <Link to="/market" className="text-gray-700 hover:text-primary font-medium">Market Prices</Link>
+
             <Link to="#" className="text-gray-700 hover:text-primary font-medium">About Us</Link>
             <Link 
               to="/register-farmer" 
@@ -256,13 +256,13 @@ const Header = () => {
               >
                 Shop
               </Link>
-              <Link 
+              {/* <Link 
                 to="/market" 
                 className="block py-2 text-gray-700 hover:text-primary"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Market Prices
-              </Link>
+              </Link> */}
               <Link 
                 to="#" 
                 className="block py-2 text-gray-700 hover:text-primary"

@@ -11,7 +11,8 @@ const {
   forgotPassword,
   resetPassword,
   getMe,
-  logout
+  logout,
+  registerFarmer
 } = require('../controllers/auth.controller');
 
 // Import middleware
@@ -33,6 +34,7 @@ const {
 
 // Auth routes
 router.post('/register', registerLimiter, registerValidation, validate, register);
+router.post('/register-farmer', registerLimiter, registerFarmer);
 router.post('/login', loginLimiter, loginValidation, validate, login);
 router.post('/verify-email', verifyEmailLimiter, verifyEmailValidation, validate, verifyEmail);
 router.post('/resend-verification', verifyEmailLimiter, forgotPasswordValidation, validate, resendVerification);

@@ -244,12 +244,7 @@ The admin system provides the foundation for implementing the remaining features
 
 ## 📞 Support & Maintenance
 
-### Admin User Management
-To create additional admin users, use the admin management interface or run:
-```bash
-# Create additional admin script as needed
-node create-additional-admin.js
-```
+
 
 ### Database Maintenance
 - Regular cleanup of old audit logs

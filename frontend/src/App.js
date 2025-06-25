@@ -68,61 +68,13 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Home />} />
               
-              {/* Auth Routes */}
-              <Route path="/login" element={
-                <>
-                  <MainHeader />
-                  <main className="flex-grow">
-                    <Login />
-                  </main>
-                  <Footer />
-                </>
-              } />
-              <Route path="/register" element={
-                <>
-                  <MainHeader />
-                  <main className="flex-grow">
-                    <Register />
-                  </main>
-                  <Footer />
-                </>
-              } />
-              <Route path="/register-farmer" element={
-                <>
-                  <MainHeader />
-                  <main className="flex-grow">
-                    <FarmerRegistration />
-                  </main>
-                  <Footer />
-                </>
-              } />
-              <Route path="/verify-email" element={
-                <>
-                  <MainHeader />
-                  <main className="flex-grow">
-                    <EmailVerification />
-                  </main>
-                  <Footer />
-                </>
-              } />
-              <Route path="/forgot-password" element={
-                <>
-                  <MainHeader />
-                  <main className="flex-grow">
-                    <ForgotPassword />
-                  </main>
-                  <Footer />
-                </>
-              } />
-              <Route path="/reset-password" element={
-                <>
-                  <MainHeader />
-                  <main className="flex-grow">
-                    <ResetPassword />
-                  </main>
-                  <Footer />
-                </>
-              } />
+              {/* Auth Routes - No Header/Footer for cleaner UX */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/register-farmer" element={<FarmerRegistration />} />
+              <Route path="/verify-email" element={<EmailVerification />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Product Routes */}
               <Route path="/products/:id" element={
