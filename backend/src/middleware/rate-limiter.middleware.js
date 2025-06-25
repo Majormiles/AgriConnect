@@ -45,9 +45,24 @@ const verifyEmailLimiter = createRateLimiter(
   'Too many email verification attempts, please try again after 1 hour.'
 );
 
+// Payment rate limiters
+const createAccountLimiter = createRateLimiter(
+  3, // 3 requests
+  60, // per 60 minutes (1 hour)
+  'Too many payment account creation attempts, please try again after 1 hour.'
+);
+
+const paymentLimiter = createRateLimiter(
+  20, // 20 requests
+  15, // per 15 minutes
+  'Too many payment attempts, please try again after 15 minutes.'
+);
+
 module.exports = {
   loginLimiter,
   registerLimiter,
   forgotPasswordLimiter,
-  verifyEmailLimiter
+  verifyEmailLimiter,
+  createAccountLimiter,
+  paymentLimiter
 }; 

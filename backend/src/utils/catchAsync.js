@@ -3,8 +3,10 @@
  * @param {Function} fn - The async function to wrap
  * @returns {Function} - Express middleware function
  */
-exports.catchAsync = (fn) => {
+const catchAsync = (fn) => {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
-}; 
+};
+
+module.exports = { catchAsync }; 

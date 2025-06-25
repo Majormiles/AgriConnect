@@ -7,6 +7,7 @@ import AccountCredentials from './farmer/AccountCredentials';
 import FarmProfile from './farmer/FarmProfile';
 import AgriculturalSpecs from './farmer/AgriculturalSpecs';
 import BusinessSetup from './farmer/BusinessSetup';
+import PaymentSetup from './farmer/PaymentSetup';
 
 const FarmerRegistration = () => {
   const navigate = useNavigate();
@@ -75,7 +76,8 @@ const FarmerRegistration = () => {
     { id: 1, title: 'Account Setup', description: 'Basic credentials' },
     { id: 2, title: 'Farm Profile', description: 'Farm information' },
     { id: 3, title: 'Agricultural Details', description: 'Farming specifications' },
-    { id: 4, title: 'Business Setup', description: 'Payment & logistics' }
+    { id: 4, title: 'Business Setup', description: 'Payment & logistics' },
+    { id: 5, title: 'Payment Account', description: 'Bank account setup' }
   ];
 
   const handleInputChange = (step, data) => {
@@ -213,6 +215,14 @@ const FarmerRegistration = () => {
       case 4:
         return (
           <BusinessSetup
+            formData={formData}
+            onChange={handleInputChange}
+            errors={errors}
+          />
+        );
+      case 5:
+        return (
+          <PaymentSetup
             formData={formData}
             onChange={handleInputChange}
             errors={errors}
@@ -367,7 +377,7 @@ const FarmerRegistration = () => {
                       </button>
                     )}
                     
-                    {currentStep < 4 ? (
+                    {currentStep < 5 ? (
                       <button
                         type="button"
                         onClick={handleNext}
@@ -432,7 +442,7 @@ const FarmerRegistration = () => {
                       Already have an account? Login
                     </Link>
                     
-                    {currentStep < 4 ? (
+                    {currentStep < 5 ? (
                       <button
                         type="button"
                         onClick={handleNext}

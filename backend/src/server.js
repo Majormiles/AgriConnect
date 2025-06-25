@@ -39,6 +39,7 @@ const orderRoutes = require('./routes/order.routes');
 const logisticsRoutes = require('./routes/logistics.routes');
 const marketRoutes = require('./routes/market.routes');
 const adminRoutes = require('./routes/admin.routes');
+const paymentRoutes = require('./routes/payment.routes');
 
 // Initialize Express app
 const app = express();
@@ -97,7 +98,8 @@ app.get('/', (req, res) => {
       orders: '/api/orders',
       logistics: '/api/logistics',
       market: '/api/market',
-      admin: '/api/admin'
+      admin: '/api/admin',
+      payments: '/api/payments'
     }
   });
 });
@@ -110,6 +112,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
